@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通帳データ化アプリ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drag-over { background-color: #dbeafe; border-color: #3b82f6; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        .preview-image { max-height: 300px; object-fit: contain; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+        <!-- ===== ヘッダー ===== -->
+        <header class="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
+            <div class="flex items-center gap-3 mb-2">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <h1 class="text-3xl font-bold">通帳データ化</h1>
+            </div>
+            <p class="text-blue-100">通帳の画像から自動で取引データを抽出します</p>
+        </header>
+
+        <main class="p-8">
+            
+            <!-- ===== 使い方説明 ===== -->
+            <div id="instructions" class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-5">
+                <h2 class="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    使い方
+                </h2>
+                <ol class="text-sm text-blue-700 space-y-2 list-decimal list-inside">
+                    <li>通帳の取引ページを<strong>スマホカメラで撮影</strong></li>
+                    <li>撮影した<strong>JPG/PNG画像をアップロード</strong></li>
+                    <li>自動で取引データが抽出され、<strong>Googleスプレッドシートが作成</strong>されます</li>
+                    <li>残高は自動計算される<strong>数式が埋め込まれます</strong></li>
+                </ol>
+                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-xs text-yellow-800">
+                        <strong>📸 撮影のコツ：</strong>通帳を平らに置き、明るい場所で撮影してください。文字がくっきり見えるように撮影すると精度が向上します。
+                    </p>
+                </div>
+            </div>
+
+            <!-- ===== アップロードエリア ===== -->
+            <div id="upload-section">
+                <div 
+                    id="drop-area" 
+                    class="border-3 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all duration-200"
+                >
+                    <svg class="mx-auto h-20 w-20 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">通帳の画像をアップロード</h3>
+                    <p class="text-gray-500 mb-4">ドラッグ&ドロップ または クリックして選択</p>
+                    <input type="file" id="file-input" accept="image/jpeg,image/jpg,image/png" class="hidden">
+                    <button id="select-file-btn" class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors shadow-lg">
+                        ファイルを選択
+                    </button>
+                    <p class="text-xs text-gray-400 mt-3">対応形式: JPG, PNG（最大10MB）</p>
+                </div>
+            </div>
+
+            <!-- ===== プレビュー ===== -->
+            <div id="preview-section" class="hidden">
+                <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <h3 class="font-semibold text-gray-800 mb-4">プレビュー</h3>
+                    <img id="preview-image" class="preview-image w-full rounded-lg border border-gray-300 mb-4" src="" alt="プレビュー">
+                    <div class="flex gap-3">
+                        <button id="process-btn" class="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-semibold shadow-lg transition-all flex items-center justify-center gap-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            データ化を開始
+                        </button>
+                        <button id="cancel-btn" class="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                            キャンセル
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 処理中 ===== -->
+            <div id="processing-section" class="hidden">
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-200">
+                    <div class="text-center">
+                        <svg class="animate-spin h-16 w-16 text-blue-600 mx-auto mb-6" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <h3 class="text-2xl font-bold text-blue-900 mb-2">処理中...</h3>
+                        <p class="text-blue-700 mb-6" id="progress-text">画像を解析しています</p>
+                        <div class="space-y-2 text-sm text-blue-600">
+                            <div id="step-1" class="opacity-50">✓ 画像をアップロード</div>
+                            <div id="step-2" class="opacity-50">⏳ OCR処理でテキスト抽出中...</div>
+                            <div id="step-3" class="opacity-50">⏳ AIでデータ解析中...</div>
+                            <div id="step-4" class="opacity-50">⏳ スプレッドシート作成中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 結果表示 ===== -->
+            <div id="result-section" class="hidden">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-8 border border-green-200">
+                    <div class="text-center mb-6">
+                        <svg class="w-20 h-20 text-green-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="text-3xl font-bold text-green-900 mb-2">データ化完了！</h3>
+                        <p class="text-green-700">
+                            <span id="extracted-count" class="text-2xl font-bold">0</span>件の取引データを抽出しました
+                        </p>
+                    </div>
+
+                    <!-- データプレビュー -->
+                    <div class="bg-white rounded-lg p-6 mb-6 max-h-64 overflow-y-auto border border-green-200">
+                        <h4 class="font-semibold text-gray-800 mb-3">抽出データプレビュー</h4>
+                        <div id="data-preview" class="text-sm text-gray-700 space-y-1"></div>
+                    </div>
+
+                    <!-- アクションボタン -->
+                    <div class="space-y-3">
+                        <a id="sheet-link" href="#" target="_blank" class="block w-full px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-center rounded-lg hover:from-green-700 hover:to-emerald-700 font-semibold shadow-lg transition-all">
+                            📊 Googleスプレッドシートを開く
+                        </a>
+                        <button id="download-csv-btn" class="w-full px-6 py-4 bg-white border-2 border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-semibold transition-all">
+                            📥 CSVファイルをダウンロード
+                        </button>
+                        <button id="reset-btn" class="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                            新しい通帳を処理
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== エラー表示 ===== -->
+            <div id="error-section" class="hidden">
+                <div class="bg-red-50 rounded-xl p-8 border border-red-200">
+                    <div class="text-center mb-6">
+                        <svg class="w-16 h-16 text-red-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="text-2xl font-bold text-red-900 mb-2">エラーが発生しました</h3>
+                        <p id="error-message" class="text-red-700 mb-6"></p>
+                    </div>
+                    <button id="retry-btn" class="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
+                        再試行
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // ========== 設定 ==========
+        const CONFIG = {
+            N8N_WEBHOOK_URL: 'https://my-n8n.xvps.jp/webhook/passbook-ocr',
+            MAX_FILE_SIZE: 10 * 1024 * 1024 // 10MB
+        };
+
+        // ========== DOM要素 ==========
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const selectFileBtn = document.getElementById('select-file-btn');
+        const uploadSection = document.getElementById('upload-section');
+        const previewSection = document.getElementById('preview-section');
+        const processingSection = document.getElementById('processing-section');
+        const resultSection = document.getElementById('result-section');
+        const errorSection = document.getElementById('error-section');
+        const previewImage = document.getElementById('preview-image');
+        const processBtn = document.getElementById('process-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const retryBtn = document.getElementById('retry-btn');
+
+        let selectedFile = null;
+        let resultData = null;
+
+        // ========== ファイル選択 ==========
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelect(e.target.files[0]);
+        });
+
+        // ========== ドラッグ&ドロップ ==========
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('drag-over');
+        });
+
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('drag-over');
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        dropArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // ========== ファイル処理 ==========
+        function handleFileSelect(file) {
+            if (!file) return;
+
+            // ファイル形式チェック
+            if (!file.type.match('image/jpeg') && !file.type.match('image/jpg') && !file.type.match('image/png')) {
+                alert('❌ JPGまたはPNG形式の画像を選択してください');
+                return;
+            }
+
+            // ファイルサイズチェック
+            if (file.size > CONFIG.MAX_FILE_SIZE) {
+                alert('❌ ファイルサイズは10MB以下にしてください');
+                return;
+            }
+
+            selectedFile = file;
+
+            // プレビュー表示
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                showSection('preview');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ========== データ化処理 ==========
+        processBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            showSection('processing');
+            updateProgress(1);
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+                formData.append('metadata', JSON.stringify({
+                    filename: selectedFile.name,
+                    uploadedAt: new Date().toISOString()
+                }));
+
+                updateProgress(2);
+
+                const response = await fetch(CONFIG.N8N_WEBHOOK_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`サーバーエラー (${response.status})`);
+                }
+
+                updateProgress(3);
+
+                const data = await response.json();
+                
+                updateProgress(4);
+
+                // 結果表示
+                resultData = data;
+                showResult(data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || '通信エラーが発生しました');
+            }
+        });
+
+        // ========== 進捗更新 ==========
+        function updateProgress(step) {
+            const steps = ['step-1', 'step-2', 'step-3', 'step-4'];
+            const messages = [
+                '画像をアップロード',
+                'OCR処理でテキスト抽出中...',
+                'AIでデータ解析中...',
+                'スプレッドシート作成中...'
+            ];
+
+            steps.forEach((id, index) => {
+                const el = document.getElementById(id);
+                if (index < step) {
+                    el.className = 'text-green-600 font-semibold';
+                    el.textContent = '✓ ' + messages[index];
+                } else if (index === step) {
+                    el.className = 'text-blue-600 font-semibold';
+                    el.textContent = '⏳ ' + messages[index];
+                } else {
+                    el.className = 'opacity-50';
+                    el.textContent = '○ ' + messages[index];
+                }
+            });
+
+            document.getElementById('progress-text').textContent = messages[step] || '処理中...';
+        }
+
+        // ========== 結果表示 ==========
+        function showResult(data) {
+            showSection('result');
+
+            // 抽出件数表示
+            const count = data.extractedCount || data.transactions?.length || 0;
+            document.getElementById('extracted-count').textContent = count;
+
+            // データプレビュー
+            const preview = document.getElementById('data-preview');
+            if (data.preview) {
+                preview.innerHTML = data.preview.map((row, index) => `
+                    <div class="flex gap-2 ${index === 0 ? 'font-semibold bg-gray-100 p-2 rounded' : ''}">
+                        <span class="w-24">${row.date || '-'}</span>
+                        <span class="w-24 text-right">${row.withdrawal || '-'}</span>
+                        <span class="w-24 text-right">${row.deposit || '-'}</span>
+                        <span class="flex-1 truncate">${row.description || '-'}</span>
+                    </div>
+                `).join('');
+            }
+
+            // リンク設定
+            document.getElementById('sheet-link').href = data.sheetUrl || '#';
+        }
+
+        // ========== エラー表示 ==========
+        function showError(message) {
+            showSection('error');
+            document.getElementById('error-message').textContent = message;
+        }
+
+        // ========== 画面切替 ==========
+        function showSection(section) {
+            uploadSection.classList.add('hidden');
+            previewSection.classList.add('hidden');
+            processingSection.classList.add('hidden');
+            resultSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
+
+            switch (section) {
+                case 'upload':
+                    uploadSection.classList.remove('hidden');
+                    break;
+                case 'preview':
+                    previewSection.classList.remove('hidden');
+                    break;
+                case 'processing':
+                    processingSection.classList.remove('hidden');
+                    break;
+                case 'result':
+                    resultSection.classList.remove('hidden');
+                    break;
+                case 'error':
+                    errorSection.classList.remove('hidden');
+                    break;
+            }
+        }
+
+        // ========== ボタンイベント ==========
+        cancelBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            showSection('upload');
+        });
+
+        resetBtn.addEventListener('click', () => {
+            selectedFile = null;
+            resultData = null;
+            fileInput.value = '';
+            showSection('upload');
+        });
+
+        retryBtn.addEventListener('click', () => {
+            if (selectedFile) {
+                showSection('preview');
+            } else {
+                showSection('upload');
+            }
+        });
+
+        // CSV ダウンロード
+        document.getElementById('download-csv-btn').addEventListener('click', () => {
+            if (!resultData || !resultData.csvData) {
+                alert('CSVデータがありません');
+                return;
+            }
+
+            const blob = new Blob([resultData.csvData], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `通帳データ_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+
+</body>
+</html>
