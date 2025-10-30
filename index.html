@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>通帳OCRシステム</title>
+    <title>通帳OCR処理システム</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Noto Sans JP', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -20,520 +20,362 @@
             align-items: center;
             padding: 20px;
         }
-
+        
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
-            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             padding: 40px;
+            max-width: 600px;
+            width: 100%;
         }
-
+        
         h1 {
             color: #333;
-            font-size: 28px;
             margin-bottom: 10px;
+            font-size: 28px;
             text-align: center;
         }
-
+        
         .subtitle {
             color: #666;
-            font-size: 14px;
             text-align: center;
             margin-bottom: 30px;
+            font-size: 14px;
         }
-
+        
         .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px 20px;
+            border: 3px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 40px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8f9ff;
-            position: relative;
+            transition: all 0.3s;
+            background: #f7fafc;
         }
-
+        
         .upload-area:hover {
-            background: #f0f2ff;
-            border-color: #764ba2;
+            border-color: #667eea;
+            background: #edf2f7;
         }
-
+        
         .upload-area.dragover {
-            background: #e8ebff;
-            border-color: #764ba2;
-            transform: scale(1.02);
+            border-color: #667eea;
+            background: #e9d8fd;
         }
-
+        
         .upload-icon {
-            font-size: 64px;
+            font-size: 48px;
             color: #667eea;
             margin-bottom: 20px;
         }
-
+        
         .upload-text {
-            color: #666;
+            color: #4a5568;
             font-size: 16px;
             margin-bottom: 10px;
         }
-
+        
         .upload-hint {
-            color: #999;
-            font-size: 13px;
+            color: #718096;
+            font-size: 12px;
         }
-
+        
         #fileInput {
             display: none;
         }
-
-        .preview-container {
-            margin-top: 30px;
+        
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
             display: none;
         }
-
-        .preview-container.active {
-            display: block;
+        
+        .file-name {
+            color: #2d3748;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
-
-        .preview-image {
-            max-width: 100%;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .file-info {
-            background: #f8f9ff;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .file-info-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
+        
+        .file-size {
+            color: #718096;
             font-size: 14px;
-            color: #666;
         }
-
-        .file-info-item:last-child {
-            margin-bottom: 0;
+        
+        .preview-container {
+            margin-top: 20px;
+            display: none;
         }
-
-        .btn-group {
+        
+        .preview-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .button-group {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             margin-top: 20px;
         }
-
+        
         .btn {
             flex: 1;
-            padding: 15px 30px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
         }
-
+        
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-
+        
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.4);
         }
-
-        .btn-secondary {
-            background: #e0e0e0;
-            color: #666;
-        }
-
-        .btn-secondary:hover {
-            background: #d0d0d0;
-        }
-
-        .btn:disabled {
+        
+        .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
         .loading {
             display: none;
             text-align: center;
-            padding: 30px;
+            margin-top: 20px;
         }
-
-        .loading.active {
-            display: block;
-        }
-
+        
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 0 auto 10px;
         }
-
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .loading-text {
-            color: #666;
+        
+        .status-message {
+            color: #4a5568;
             font-size: 14px;
-        }
-
-        .result-container {
-            display: none;
-            margin-top: 30px;
-        }
-
-        .result-container.active {
-            display: block;
-        }
-
-        .result-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px 10px 0 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .result-content {
-            background: #f8f9ff;
-            padding: 20px;
-            border-radius: 0 0 10px 10px;
-        }
-
-        .result-item {
-            margin-bottom: 15px;
-        }
-
-        .result-label {
-            color: #666;
-            font-size: 13px;
-            margin-bottom: 5px;
-        }
-
-        .result-value {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #333;
-            word-break: break-all;
-        }
-
-        .download-btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
             margin-top: 10px;
-            transition: all 0.3s ease;
         }
-
-        .download-btn:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .error-message {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
+        
+        .result {
             display: none;
-        }
-
-        .error-message.active {
-            display: block;
-        }
-
-        .success-message {
-            background: #e8f5e9;
-            color: #2e7d32;
-            padding: 15px;
-            border-radius: 10px;
             margin-top: 20px;
-            display: none;
-        }
-
-        .success-message.active {
-            display: block;
-        }
-
-        .instructions {
-            background: #fff3e0;
             padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            border-left: 4px solid #ff9800;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
         }
-
-        .instructions h3 {
-            color: #f57c00;
-            font-size: 16px;
+        
+        .result-title {
+            color: #065f46;
+            font-weight: bold;
             margin-bottom: 10px;
         }
-
-        .instructions ul {
-            margin-left: 20px;
-            color: #666;
+        
+        .result-message {
+            color: #047857;
             font-size: 14px;
-            line-height: 1.8;
+            line-height: 1.6;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .download-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        
+        .error {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #fef2f2;
+            border-radius: 8px;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .error-title {
+            color: #991b1b;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .error-message {
+            color: #dc2626;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏦 通帳OCRシステム</h1>
-        <p class="subtitle">通帳の画像をアップロードして、取引データをスプレッドシート形式で取得</p>
-
-        <div class="instructions">
-            <h3>📋 使い方</h3>
-            <ul>
-                <li>通帳の見開きページをスマホやスキャナーで撮影</li>
-                <li>JPG形式の画像をアップロード</li>
-                <li>自動でOCR処理→データ抽出→スプレッドシート作成</li>
-                <li>結果をCSVでダウンロード、またはGoogle Sheetsで確認</li>
-            </ul>
-        </div>
-
+        <h1>🏦 通帳OCR処理システム</h1>
+        <p class="subtitle">通帳画像をアップロードして、会計ソフト用CSVファイルを生成します</p>
+        
         <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📸</div>
-            <div class="upload-text">クリックまたはドラッグ＆ドロップ</div>
-            <div class="upload-hint">通帳画像（JPG）をアップロードしてください</div>
-            <input type="file" id="fileInput" accept="image/jpeg,image/jpg">
+            <div class="upload-icon">📁</div>
+            <p class="upload-text">クリックまたはドラッグ＆ドロップで画像をアップロード</p>
+            <p class="upload-hint">対応形式: JPG, JPEG, PNG (最大10MB)</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/jpg,image/png">
         </div>
-
+        
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-size" id="fileSize"></div>
+        </div>
+        
         <div class="preview-container" id="previewContainer">
-            <img id="previewImage" class="preview-image" alt="プレビュー">
-            
-            <div class="file-info">
-                <div class="file-info-item">
-                    <span>ファイル名:</span>
-                    <span id="fileName"></span>
-                </div>
-                <div class="file-info-item">
-                    <span>ファイルサイズ:</span>
-                    <span id="fileSize"></span>
-                </div>
-                <div class="file-info-item">
-                    <span>画像サイズ:</span>
-                    <span id="imageDimensions"></span>
-                </div>
-            </div>
-
-            <div class="btn-group">
-                <button class="btn btn-primary" id="processBtn">
-                    🚀 OCR処理を開始
-                </button>
-                <button class="btn btn-secondary" id="cancelBtn">
-                    ✕ キャンセル
-                </button>
-            </div>
+            <img class="preview-image" id="previewImage" alt="アップロード画像のプレビュー">
         </div>
-
+        
+        <div class="button-group" id="buttonGroup" style="display: none;">
+            <button class="btn btn-secondary" onclick="resetUpload()">キャンセル</button>
+            <button class="btn btn-primary" id="processBtn" onclick="processImage()">処理開始</button>
+        </div>
+        
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <div class="loading-text">処理中... 通帳データを分析しています</div>
+            <p class="status-message" id="statusMessage">画像を処理中...</p>
         </div>
-
-        <div class="result-container" id="resultContainer">
-            <div class="result-header">✅ 処理完了</div>
-            <div class="result-content">
-                <div class="result-item">
-                    <div class="result-label">Google スプレッドシート</div>
-                    <div class="result-value">
-                        <a id="sheetsLink" href="#" target="_blank" style="color: #667eea; text-decoration: none;">
-                            📊 スプレッドシートを開く
-                        </a>
-                    </div>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">CSVダウンロード</div>
-                    <div class="result-value">
-                        <a id="csvDownload" href="#" class="download-btn" download="bankbook_data.csv">
-                            💾 CSVをダウンロード
-                        </a>
-                    </div>
-                </div>
-            </div>
+        
+        <div class="result" id="result">
+            <div class="result-title">✅ 処理完了</div>
+            <div class="result-message" id="resultMessage"></div>
         </div>
-
-        <div class="error-message" id="errorMessage"></div>
-        <div class="success-message" id="successMessage"></div>
+        
+        <div class="error" id="error">
+            <div class="error-title">⚠️ エラー</div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
     </div>
 
     <script>
+        // Webhook URLの設定（n8nのWebhook URLに置き換えてください）
+        const WEBHOOK_URL = 'https://my-n8n.xvps.jp/webhook-test/passbook-ocr';
+        
+        let uploadedFile = null;
+        
+        // アップロードエリアの設定
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
-        const previewContainer = document.getElementById('previewContainer');
-        const previewImage = document.getElementById('previewImage');
+        const fileInfo = document.getElementById('fileInfo');
         const fileName = document.getElementById('fileName');
         const fileSize = document.getElementById('fileSize');
-        const imageDimensions = document.getElementById('imageDimensions');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const buttonGroup = document.getElementById('buttonGroup');
         const processBtn = document.getElementById('processBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
         const loading = document.getElementById('loading');
-        const resultContainer = document.getElementById('resultContainer');
+        const statusMessage = document.getElementById('statusMessage');
+        const result = document.getElementById('result');
+        const resultMessage = document.getElementById('resultMessage');
+        const error = document.getElementById('error');
         const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const sheetsLink = document.getElementById('sheetsLink');
-        const csvDownload = document.getElementById('csvDownload');
-
-        let selectedFile = null;
-
-        // n8n Webhook URL（環境に合わせて変更）
-        const WEBHOOK_URL = 'http://localhost:5678/webhook-test/bankbook-ocr';
-
-        // アップロードエリアのクリックイベント
+        
+        // クリックイベント
         uploadArea.addEventListener('click', () => fileInput.click());
-
-        // ファイル選択イベント
-        fileInput.addEventListener('change', handleFileSelect);
-
+        
         // ドラッグ＆ドロップイベント
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
         });
-
+        
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.classList.remove('dragover');
         });
-
+        
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                fileInput.files = files;
-                handleFileSelect();
+                handleFile(files[0]);
             }
         });
-
-        // ファイル選択処理
-        function handleFileSelect() {
-            const file = fileInput.files[0];
-            
-            if (!file) return;
-
-            // JPGチェック
-            if (!file.type.match('image/jpeg') && !file.type.match('image/jpg')) {
-                showError('JPG形式の画像を選択してください');
+        
+        // ファイル選択イベント
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        // ファイル処理
+        function handleFile(file) {
+            // ファイル検証
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                showError('対応していないファイル形式です。JPG, JPEG, PNGファイルをアップロードしてください。');
                 return;
             }
-
-            selectedFile = file;
-
+            
+            if (file.size > 10 * 1024 * 1024) {
+                showError('ファイルサイズが大きすぎます。10MB以下のファイルをアップロードしてください。');
+                return;
+            }
+            
+            uploadedFile = file;
+            
+            // ファイル情報表示
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            
             // プレビュー表示
             const reader = new FileReader();
             reader.onload = (e) => {
                 previewImage.src = e.target.result;
-                
-                // 画像サイズを取得
-                const img = new Image();
-                img.onload = () => {
-                    imageDimensions.textContent = `${img.width} × ${img.height} px`;
-                };
-                img.src = e.target.result;
+                previewContainer.style.display = 'block';
             };
             reader.readAsDataURL(file);
-
-            // ファイル情報表示
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-
-            // プレビューコンテナを表示
-            previewContainer.classList.add('active');
-            uploadArea.style.display = 'none';
-
-            // メッセージをクリア
-            hideMessages();
+            
+            // ボタン表示
+            buttonGroup.style.display = 'flex';
+            
+            // エラーメッセージクリア
+            hideError();
+            hideResult();
         }
-
-        // キャンセルボタン
-        cancelBtn.addEventListener('click', () => {
-            selectedFile = null;
-            fileInput.value = '';
-            previewContainer.classList.remove('active');
-            uploadArea.style.display = 'block';
-            resultContainer.classList.remove('active');
-            hideMessages();
-        });
-
-        // 処理開始ボタン
-        processBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
-
-            // ローディング表示
-            loading.classList.add('active');
-            processBtn.disabled = true;
-            cancelBtn.disabled = true;
-            hideMessages();
-
-            try {
-                // FormDataを作成
-                const formData = new FormData();
-                formData.append('image0', selectedFile);
-
-                // n8nにPOST
-                const response = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                // 結果を表示
-                if (result.success) {
-                    sheetsLink.href = result.spreadsheetUrl;
-                    
-                    // CSVダウンロードリンクを設定
-                    const csvBlob = new Blob([result.csvData], { type: 'text/csv;charset=utf-8;' });
-                    const csvUrl = URL.createObjectURL(csvBlob);
-                    csvDownload.href = csvUrl;
-                    csvDownload.download = result.filename || 'bankbook_data.csv';
-
-                    resultContainer.classList.add('active');
-                    showSuccess('通帳データの処理が完了しました！');
-                } else {
-                    throw new Error(result.error || '処理に失敗しました');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                showError('処理中にエラーが発生しました: ' + error.message);
-            } finally {
-                loading.classList.remove('active');
-                processBtn.disabled = false;
-                cancelBtn.disabled = false;
-            }
-        });
-
-        // ユーティリティ関数
+        
+        // ファイルサイズフォーマット
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -541,22 +383,119 @@
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
         }
-
+        
+        // 画像処理
+        async function processImage() {
+            if (!uploadedFile) return;
+            
+            // UI更新
+            processBtn.disabled = true;
+            loading.style.display = 'block';
+            hideError();
+            hideResult();
+            
+            try {
+                // 画像をBase64に変換
+                const base64 = await fileToBase64(uploadedFile);
+                
+                // 処理状態の更新
+                updateStatus('画像をアップロード中...');
+                
+                // Webhookに送信
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image: base64,
+                        fileName: uploadedFile.name,
+                        fileSize: uploadedFile.size,
+                        mimeType: uploadedFile.type,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                updateStatus('OCR処理を実行中...');
+                
+                if (!response.ok) {
+                    throw new Error(`処理に失敗しました (${response.status})`);
+                }
+                
+                updateStatus('データを分析中...');
+                
+                const result = await response.json();
+                
+                updateStatus('CSVファイルを生成中...');
+                
+                // 結果表示
+                showResult(result);
+                
+            } catch (err) {
+                showError(err.message || '処理中にエラーが発生しました。');
+            } finally {
+                processBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+        
+        // ファイルをBase64に変換
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // ステータス更新
+        function updateStatus(message) {
+            statusMessage.textContent = message;
+        }
+        
+        // 結果表示
+        function showResult(data) {
+            result.style.display = 'block';
+            
+            let message = '通帳データの処理が完了しました。\n';
+            message += `処理件数: ${data.recordCount || 0}件\n`;
+            
+            if (data.csvUrl) {
+                message += '\n<a href="' + data.csvUrl + '" class="download-btn" download>CSVファイルをダウンロード</a>';
+            }
+            
+            resultMessage.innerHTML = message.replace(/\n/g, '<br>');
+        }
+        
+        // エラー表示
         function showError(message) {
+            error.style.display = 'block';
             errorMessage.textContent = message;
-            errorMessage.classList.add('active');
-            successMessage.classList.remove('active');
         }
-
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.classList.add('active');
-            errorMessage.classList.remove('active');
+        
+        // エラー非表示
+        function hideError() {
+            error.style.display = 'none';
         }
-
-        function hideMessages() {
-            errorMessage.classList.remove('active');
-            successMessage.classList.remove('active');
+        
+        // 結果非表示
+        function hideResult() {
+            result.style.display = 'none';
+        }
+        
+        // リセット
+        function resetUpload() {
+            uploadedFile = null;
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            previewContainer.style.display = 'none';
+            buttonGroup.style.display = 'none';
+            hideError();
+            hideResult();
         }
     </script>
 </body>
